@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
         typeURL: type(
             selector: "input[placeholder='Paste URL Instagram']"
-            text: "https://www.instagram.com/reel/DXcVd7NkpKZ/?igsh=OGVuMmhwYzBwOHFh"
+            text: "${instagram_url}"
         ) {
             time
         }
