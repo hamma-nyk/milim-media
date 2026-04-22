@@ -26,44 +26,66 @@ export async function POST(request: Request) {
     // 2. Script Browserless (Logika DrissionPage yang dipindah ke JS/Puppeteer)
     const jsCode = `
     export default async ({ page }) => {
-        try {
-            await page.goto('https://snaptik.app/en2', { waitUntil: 'networkidle2' });
+    try {
+        await page.goto('https://snaptik.app/en2', { waitUntil: 'networkidle2' });
+        
+        // 1. Input link TikTok
+        const inputSelector = 'input[placeholder="Paste TikTok link here"]';
+        await page.waitForSelector(inputSelector);
+        await page.type(inputSelector, '${tiktok_url}');
+        
+        // 2. Klik tombol Download
+        await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            const downloadBtn = buttons.find(b => b.textContent.includes('Download'));
+            if (downloadBtn) downloadBtn.click();
+        });
+
+        // 3. Tunggu sampai kontainer hasil (.info) muncul sebelum ambil data
+        // Ini kunci agar key author tidak hilang
+        await page.waitForSelector('.info', { timeout: 20000 });
+        const finalBtnSelector = 'a.button.download-file';
+        await page.waitForSelector(finalBtnSelector, { timeout: 20000 });
+
+        // 4. Ambil data
+        const result = await page.evaluate((sel) => {
+            const el = document.querySelector(sel);
+            const titleElement = document.querySelector('.video-title');
             
-            // 1. Input link TikTok ke placeholder yang sesuai
-            const inputSelector = 'input[placeholder="Paste TikTok link here"]';
-            await page.waitForSelector(inputSelector);
-            await page.type(inputSelector, '${tiktok_url}');
+            // Ambil kontainer info
+            const infoBox = document.querySelector('.info');
             
-            // 2. Klik tombol Download
-            // Mencari button yang berisi teks 'Download'
-            await page.evaluate(() => {
-                const buttons = Array.from(document.querySelectorAll('button'));
-                const downloadBtn = buttons.find(b => b.textContent.includes('Download'));
-                if (downloadBtn) downloadBtn.click();
-            });
+            // Cari author di dalam span atau h3
+            let authorText = 'Unknown Author';
+            if (infoBox) {
+                const authorEl = infoBox.querySelector('span') || infoBox.querySelector('h3');
+                if (authorEl && authorEl.innerText.trim() !== "") {
+                    authorText = authorEl.innerText.trim();
+                }
+            }
+            
+            let rawTitle = titleElement ? titleElement.innerText.trim() : 'No Title';
+            const limit = 20;
+            const finalTitle = rawTitle.length > limit 
+                ? rawTitle.substring(0, limit) + "..." 
+                : rawTitle;
+                
+            // Pastikan semua key didefinisikan dengan jelas di sini
+            return {
+                download_url: el ? el.getAttribute('href') : null,
+                title: finalTitle,
+                author: authorText // Key ini sekarang dijamin ada nilainya
+            };
+        }, finalBtnSelector);
 
-            // 3. Tunggu tombol download hasil konversi muncul (Timeout 20 detik)
-            // Sesuai selector DrissionPage: tag 'a' dengan class 'button download-file'
-            const finalBtnSelector = 'a.button.download-file';
-            await page.waitForSelector(finalBtnSelector, { timeout: 20000 });
+        return { data: result, type: "application/json" };
 
-            // 4. Ambil atribut href dari tombol tersebut
-            const result = await page.evaluate((sel) => {
-                const el = document.querySelector(sel);
-                return {
-                    download_url: el ? el.getAttribute('href') : null,
-                    title: document.querySelector('.main .name') ? document.querySelector('.main .name').textContent : 'TikTok Video'
-                };
-            }, finalBtnSelector);
-
-            return { data: result, type: "application/json" };
-
-        } catch (err) {
-            return { data: { error: err.message }, type: "application/json" };
-        }
-    };
+    } catch (err) {
+        return { data: { error: err.message }, type: "application/json" };
+    }
+};
     `;
-    
+
     // TESTING
     const shuffledKeys = [process.env.BROWSERLESS_TOKEN!];
     let lastError = null;
@@ -90,7 +112,8 @@ export async function POST(request: Request) {
             return NextResponse.json({
               success: true,
               title: result.data.title,
-              download_url: result.data.download_url
+              download_url: result.data.download_url,
+              author: result.data.author
             });
           }
           lastError = result.data?.error || "Gagal konversi";
