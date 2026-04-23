@@ -11,7 +11,10 @@ export async function POST(request: Request) {
     const { instagram_url } = await request.json();
 
     if (!instagram_url) {
-      return NextResponse.json({ error: "URL Instagram diperlukan" }, { status: 400 });
+      return NextResponse.json(
+        { error: "URL Instagram diperlukan" },
+        { status: 400 },
+      );
     }
 
     // const rawKeys = await redis.get<string>('browserless_io');
@@ -20,90 +23,84 @@ export async function POST(request: Request) {
     // const apiKeys = rawKeys.split(',').map(k => k.trim()).filter(Boolean);
     // const token = apiKeys[Math.floor(Math.random() * apiKeys.length)];
 
-    const options = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            "query": `
-        mutation DownloadFromSnapInsta {
-        viewport(width: 1366, height: 768) {
-                width
-                height
-                time
-            }
-        goto(url: "https://snapinsta.to/en2", waitUntil: networkIdle) {
-            status
-        }
+    // 1. Script Browserless untuk Snapsave
+    const jsCode = `
+    export default async ({ page }) => {
+        try {
+            
+            await page.goto('https://fastdl.app/', { waitUntil: 'networkidle2' });
+            
+            // 1. Input link Instagram (Placeholder: Paste video URL Facebook/Instagram)
+            const inputSelector = 'input#search-form-input'; // Snapsave biasanya menggunakan id="url"
+            await page.waitForSelector(inputSelector, { timeout: 10000 });
+            await page.type(inputSelector, '${instagram_url}');
+            
+            // 2. Klik tombol Download
+            await page.click('button#searchFormButton'); // Snapsave menggunakan button id="send"
 
-        typeURL: type(
-            selector: "input[placeholder='Paste URL Instagram']"
-            text: "${instagram_url}"
-        ) {
-            time
-        }
+            // 3. Tunggu tombol download hasil konversi muncul
+            // Berdasarkan logika Drission kamu: tag 'a' dengan class 'button is-success'
+            const finalBtnSelector = 'a.button.button--filled.button__download';
+            
+            // Kadang Snapsave butuh waktu lebih lama untuk memproses video HD
+            await page.waitForSelector(finalBtnSelector, { timeout: 25000 });
 
-        clickDownload: click(
-            selector: "Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Download') || b.type === 'submit' || b.id === 'btn-submit')"
-            visible: true
-        ) {
-            time
-        }
+            // 4. Ambil data
+            const result = await page.evaluate((sel) => {
+                const el = document.querySelector(sel);    
+                return {
+                    download_url: el ? el.getAttribute('href') : null,
+                };
+            }, finalBtnSelector);
 
-        waitForDownloadBtn: waitForSelector(
-            selector: "a.abutton.is-success"
-            timeout: 20000
-            visible: true
-        ) {
-            time
-        }
+            return { data: result, type: "application/json" };
 
-        downloadLink: querySelectorAll(selector: "a.abutton.is-success") {
-            outerHTML
-            innerText
+        } catch (err) {
+            return { data: { error: err.message }, type: "application/json" };
         }
-        }
-            `,
-            "operationName":"DownloadFromSnapInsta"
-        })
     };
-    // TESTING
-    const token = process.env.BROWSERLESS_TOKEN!;
-    const endpoint = "https://production-sfo.browserless.io/stealth/bql";
-    const optionsString = "&blockConsentModals=true";
-    const url = `${endpoint}?token=${token}${optionsString}`;
+    `;
 
-    const response = await fetch(url, options);
+    // Ambil token dari environment
+    const shuffledKeys = [process.env.BROWSERLESS_TOKEN!];
+    let lastError = null;
 
-    const result = await response.json();
+    for (const key of shuffledKeys) {
+      try {
+        const url = `https://production-sfo.browserless.io/function?token=${key}`;
 
-    const data = result.data;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/javascript" },
+          body: jsCode,
+        });
 
-    if (data.downloadLink && data.downloadLink.length > 0) {
-        const outerHTML = data.downloadLink[0].outerHTML;
-
-        // Gunakan Regex untuk mengambil isi di dalam href="..."
-        const hrefMatch = outerHTML.match(/href="([^"]+)"/);
-        
-        if (hrefMatch && hrefMatch[1]) {
-            const downloadUrl = hrefMatch[1].replace(/&amp;/g, '&'); // Bersihkan karakter & html
-            
-            // console.log("Link Download:", downloadUrl);
-            
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data && !result.data.error) {
             return NextResponse.json({
-            success: true,
-            download_url: downloadUrl
+              success: true,
+              download_url: result.data.download_url,
             });
+          }
+          lastError = result.data?.error || "Gagal konversi";
+        } else {
+          lastError = `Browserless Error: ${response.statusText}`;
         }
+      } catch (error: any) {
+        lastError = error.message;
+      }
     }
 
-    return NextResponse.json({ 
-      error: "Gagal mendapatkan link", 
-      details: result.errors || "Tombol download tidak muncul" 
-    }, { status: 503 });
-
+    return NextResponse.json(
+      { error: "Gagal mengambil data Instagram.", details: lastError },
+      { status: 503 },
+    );
   } catch (err: any) {
-    return NextResponse.json({ error: "Internal Error", details: err.message }, { status: 500 });
+    console.error("Internal Error:", err);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 },
+    );
   }
 }
