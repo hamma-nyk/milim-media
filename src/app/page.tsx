@@ -78,8 +78,8 @@ export default function HomePage() {
     <main className="min-h-screen gradient-glow-main text-zinc-100 flex flex-col font-sans">
       {/* Header */}
       <header className="gradient-glow-content border-b border-slate-100/10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="w-16 h-16 bg-zinc-900 border-2 border-red-400/50 shadow-[0_0_20px_rgba(245,158,11,0.2)] rounded-2xl overflow-hidden p-1.5 transition-all duration-500 group-hover:scale-105 group-hover:border-red-400">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="w-12 sm:w-16 h-12 sm:h-16 bg-zinc-900 border-2 border-red-400/50 shadow-[0_0_20px_rgba(245,158,11,0.2)] rounded-2xl overflow-hidden p-1.5 transition-all duration-500 group-hover:scale-105 group-hover:border-red-400">
               <img
                 src="/logo.png"
                 alt="Logo"
@@ -90,7 +90,7 @@ export default function HomePage() {
             href="https://ikonyek-dev.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-6 py-2 border border-red-400 bg-red-500/20 text-sm hover:bg-red-400/20 text-white rounded-2xl font-semibold transition-all active:scale-95"
+            className="px-4 sm:px-6 py-2 border border-red-400 bg-red-500/20 text-xs sm:text-sm hover:bg-red-400/20 text-white rounded-2xl font-semibold transition-all active:scale-95 whitespace-nowrap"
           >
             ALL PROJECTS
           </a>
@@ -98,23 +98,23 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <div className="gradient-glow-content flex-1 flex flex-col items-center justify-center p-6">
+      <div className="gradient-glow-content flex-1 flex flex-col items-center justify-center p-4 sm:p-6">
         <div className="max-w-2xl w-full">
         
         {/* Hero Section */}
-        <div className="text-center space-y-4 pb-8">
-          <h1 className="text-6xl font-black italic tracking-tight text-white uppercase">
+        <div className="text-center space-y-3 sm:space-y-4 pb-6 sm:pb-8 pt-4 sm:pt-0">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black italic tracking-tight text-white uppercase">
             MILIM-MEDIA<span className="text-red-500">.</span>
           </h1>
-          <p className="text-zinc-500 font-medium tracking-wide">
+          <p className="text-xs sm:text-sm text-zinc-500 font-medium tracking-wide">
             BYPASS LIMITS • FAST DOWNLOADS
           </p>
         </div>
 
         {/* Input Field Area */}
         <div className="relative">
-          <div className="flex items-center bg-zinc-900/50 border border-zinc-800 rounded-3xl p-2 backdrop-blur-sm shadow-2xl focus-within:border-red-500/50 transition-all">
-            <div className="pl-4 pr-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-0 bg-zinc-900/50 border border-zinc-800 rounded-3xl p-2 backdrop-blur-sm shadow-2xl focus-within:border-red-500/50 transition-all">
+            <div className="hidden sm:flex pl-4 pr-2">
               <LinkIcon className="w-5 h-5 text-zinc-600" />
             </div>
             <input
@@ -122,27 +122,27 @@ export default function HomePage() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Paste video link here..."
-              className="flex-1 bg-transparent border-none focus:ring-0 py-4 text-zinc-200 outline-none"
+              className="flex-1 w-full sm:w-auto bg-transparent border-none focus:ring-0 py-3 sm:py-4 px-4 sm:px-0 text-sm sm:text-base text-zinc-200 outline-none"
             />
             <button
               onClick={handleDownload}
               disabled={loading}
-              className="bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 text-white px-8 py-4 rounded-2xl font-bold transition-all flex items-center gap-2 active:scale-95"
+              className="w-full sm:w-auto bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-2 active:scale-95 text-sm sm:text-base"
             >
-              {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Download className="w-5 h-5" />}
+              {loading ? <Loader2 className="animate-spin w-4 sm:w-5 h-4 sm:h-5" /> : <Download className="w-4 sm:w-5 h-4 sm:h-5" />}
               {loading ? "" : "PROCESS"}
             </button>
           </div>
         </div>
 
         {/* Status & Download Result */}
-        <div className="mt-5 space-y-4">
+        <div className="mt-4 sm:mt-5 space-y-3 sm:space-y-4">
           {status.type && (
-            <div className={`p-4 rounded-2xl flex items-center gap-3 border animate-in fade-in zoom-in duration-300 ${
+            <div className={`p-3 sm:p-4 rounded-2xl flex items-center gap-2 sm:gap-3 border animate-in fade-in zoom-in duration-300 text-sm ${
               status.type === "error" ? "bg-red-500/5 border-red-500/20 text-red-500" : "bg-green-500/5 border-green-500/20 text-green-500"
             }`}>
-              {status.type === "error" ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
-              <span className="text-sm font-medium">{status.msg}</span>
+              {status.type === "error" ? <AlertCircle className="w-4 sm:w-5 h-4 sm:h-5 flex-shrink-0" /> : <CheckCircle2 className="w-4 sm:w-5 h-4 sm:h-5 flex-shrink-0" />}
+              <span className="font-medium text-xs sm:text-sm">{status.msg}</span>
             </div>
           )}
 
@@ -152,27 +152,27 @@ export default function HomePage() {
               href={downloadResult} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-3 w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-medium text-md shadow-[0_0_20px_rgba(22,163,74,0.4)] transition-all mt-4"
+              className="flex items-center justify-center gap-2 sm:gap-3 w-full py-3 sm:py-4 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-medium text-xs sm:text-sm shadow-[0_0_20px_rgba(22,163,74,0.4)] transition-all mt-3 sm:mt-4"
             >
-              <ExternalLink className="w-6 h-6" />
+              <ExternalLink className="w-4 sm:w-6 h-4 sm:h-6" />
               DOWNLOAD VIDEO
             </a>
           )}
         </div>
 
         {/* Platforms Footer */}
-        <div className="flex justify-center items-center gap-10 pt-16 transition-all duration-500">
-          <div className="flex flex-col items-center gap-2 text-zinc-600 hover:text-white transition-colors cursor-default">
-            <Music2 className="w-6 h-6" />
-            <span className="text-[10px] font-bold tracking-widest">TIKTOK</span>
+        <div className="flex justify-center items-center gap-6 sm:gap-10 pt-12 sm:pt-16 transition-all duration-500">
+          <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-zinc-600 hover:text-white transition-colors cursor-default">
+            <Music2 className="w-5 sm:w-6 h-5 sm:h-6" />
+            <span className="text-[8px] sm:text-[10px] font-bold tracking-widest">TIKTOK</span>
           </div>
-          <div className="flex flex-col items-center gap-2 text-zinc-600 hover:text-pink-500 transition-colors cursor-default">
+          <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-zinc-600 hover:text-pink-500 transition-colors cursor-default">
             <IconInstagram />
-            <span className="text-[10px] font-bold tracking-widest">INSTAGRAM</span>
+            <span className="text-[8px] sm:text-[10px] font-bold tracking-widest">INSTAGRAM</span>
           </div>
-          <div className="flex flex-col items-center gap-2 text-zinc-600 hover:text-blue-500 transition-colors cursor-default">
+          <div className="flex flex-col items-center gap-1.5 sm:gap-2 text-zinc-600 hover:text-blue-500 transition-colors cursor-default">
             <IconFacebook />
-            <span className="text-[10px] font-bold tracking-widest">FACEBOOK</span>
+            <span className="text-[8px] sm:text-[10px] font-bold tracking-widest">FACEBOOK</span>
           </div>
         </div>
 
