@@ -1,103 +1,183 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import { 
+  Download, 
+  Link as LinkIcon, 
+  Loader2, 
+  AlertCircle, 
+  CheckCircle2,
+  Music2,
+  ExternalLink // Ikon baru untuk tombol hasil
+} from "lucide-react";
+
+const IconInstagram = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+);
+
+const IconFacebook = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+);
+
+export default function HomePage() {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [downloadResult, setDownloadResult] = useState<string | null>(null); // State simpan link hasil
+  const [status, setStatus] = useState<{ type: "error" | "success" | null; msg: string }>({
+    type: null,
+    msg: "",
+  });
+
+  const detectPlatform = (inputUrl: string) => {
+    const link = inputUrl.toLowerCase();
+    if (link.includes("tiktok.com")) return { endpoint: "/api/tiktok", key: "tiktok_url", name: "TikTok" };
+    if (link.includes("instagram.com")) return { endpoint: "/api/ig", key: "instagram_url", name: "Instagram" };
+    if (link.includes("facebook.com") || link.includes("fb.watch")) return { endpoint: "/api/facebook", key: "facebook_url", name: "Facebook" };
+    return null;
+  };
+
+  const handleDownload = async () => {
+    if (!url) {
+      setStatus({ type: "error", msg: "Tempel link terlebih dahulu!" });
+      return;
+    }
+    
+    const target = detectPlatform(url);
+    if (!target) {
+      setStatus({ type: "error", msg: "Platform tidak didukung!" });
+      return;
+    }
+
+    setLoading(true);
+    setDownloadResult(null); // Reset hasil sebelumnya
+    setStatus({ type: null, msg: "" });
+
+    try {
+      const res = await fetch(target.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [target.key]: url }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.download_url) {
+        setStatus({ type: "success", msg: "Video berhasil diproses! Klik tombol di bawah." });
+        setDownloadResult(data.download_url); // Simpan link ke state
+      } else {
+        throw new Error(data.error || "Gagal mengambil data.");
+      }
+    } catch (err: any) {
+      setStatus({ type: "error", msg: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+    <main className="min-h-screen gradient-glow-main text-zinc-100 flex flex-col font-sans">
+      {/* Header */}
+      <header className="gradient-glow-content border-b border-slate-100/10 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="w-16 h-16 bg-zinc-900 border-2 border-red-400/50 shadow-[0_0_20px_rgba(245,158,11,0.2)] rounded-2xl overflow-hidden p-1.5 transition-all duration-500 group-hover:scale-105 group-hover:border-red-400">
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="w-full h-full object-cover rounded-xl shadow-inner transition-all"
+              />
+            </div>
           <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://ikonyek-dev.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
+            className="px-6 py-2 border border-red-400 bg-red-500/20 text-sm hover:bg-red-400/20 text-white rounded-2xl font-semibold transition-all active:scale-95"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
+            ALL PROJECTS
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="gradient-glow-content flex-1 flex flex-col items-center justify-center p-6">
+        <div className="max-w-2xl w-full">
+        
+        {/* Hero Section */}
+        <div className="text-center space-y-4 pb-8">
+          <h1 className="text-6xl font-black italic tracking-tight text-white uppercase">
+            MILIM-MEDIA<span className="text-red-500">.</span>
+          </h1>
+          <p className="text-zinc-500 font-medium tracking-wide">
+            BYPASS LIMITS • FAST DOWNLOADS
+          </p>
+        </div>
+
+        {/* Input Field Area */}
+        <div className="relative">
+          <div className="flex items-center bg-zinc-900/50 border border-zinc-800 rounded-3xl p-2 backdrop-blur-sm shadow-2xl focus-within:border-red-500/50 transition-all">
+            <div className="pl-4 pr-2">
+              <LinkIcon className="w-5 h-5 text-zinc-600" />
+            </div>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Paste video link here..."
+              className="flex-1 bg-transparent border-none focus:ring-0 py-4 text-zinc-200 outline-none"
+            />
+            <button
+              onClick={handleDownload}
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-500 disabled:bg-zinc-800 text-white px-8 py-4 rounded-2xl font-bold transition-all flex items-center gap-2 active:scale-95"
+            >
+              {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <Download className="w-5 h-5" />}
+              {loading ? "" : "PROCESS"}
+            </button>
+          </div>
+        </div>
+
+        {/* Status & Download Result */}
+        <div className="mt-5 space-y-4">
+          {status.type && (
+            <div className={`p-4 rounded-2xl flex items-center gap-3 border animate-in fade-in zoom-in duration-300 ${
+              status.type === "error" ? "bg-red-500/5 border-red-500/20 text-red-500" : "bg-green-500/5 border-green-500/20 text-green-500"
+            }`}>
+              {status.type === "error" ? <AlertCircle className="w-5 h-5" /> : <CheckCircle2 className="w-5 h-5" />}
+              <span className="text-sm font-medium">{status.msg}</span>
+            </div>
+          )}
+
+          {/* TOMBOL HASIL DOWNLOAD (Muncul hanya jika sukses) */}
+          {downloadResult && (
+            <a 
+              href={downloadResult} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-3 w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-medium text-md shadow-[0_0_20px_rgba(22,163,74,0.4)] transition-all mt-4"
+            >
+              <ExternalLink className="w-6 h-6" />
+              DOWNLOAD VIDEO
+            </a>
+          )}
+        </div>
+
+        {/* Platforms Footer */}
+        <div className="flex justify-center items-center gap-10 pt-16 transition-all duration-500">
+          <div className="flex flex-col items-center gap-2 text-zinc-600 hover:text-white transition-colors cursor-default">
+            <Music2 className="w-6 h-6" />
+            <span className="text-[10px] font-bold tracking-widest">TIKTOK</span>
+          </div>
+          <div className="flex flex-col items-center gap-2 text-zinc-600 hover:text-pink-500 transition-colors cursor-default">
+            <IconInstagram />
+            <span className="text-[10px] font-bold tracking-widest">INSTAGRAM</span>
+          </div>
+          <div className="flex flex-col items-center gap-2 text-zinc-600 hover:text-blue-500 transition-colors cursor-default">
+            <IconFacebook />
+            <span className="text-[10px] font-bold tracking-widest">FACEBOOK</span>
+          </div>
+        </div>
+
+        </div>
+      </div>
+    </main>
   );
 }
