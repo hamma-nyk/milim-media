@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-// ponytail: tikwm primary + alldl fallback; upgrade with custom scraper if both fail.
+// ponytail: tikwm hd=1 primary + alldl best quality fallback.
 async function resolveUrl(input: string): Promise<string> {
   try {
     const res = await fetch(input, { method: "HEAD", redirect: "follow" });
@@ -21,27 +21,29 @@ export async function POST(request: Request) {
 
     const targetUrl = await resolveUrl(rawUrl.trim());
 
-    // 1. TikWM API
+    // 1. TikWM API (HD enabled)
     try {
-      const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(targetUrl)}`, {
+      const res = await fetch(`https://www.tikwm.com/api/?hd=1&url=${encodeURIComponent(targetUrl)}`, {
         headers: { "User-Agent": "Mozilla/5.0" },
       });
       if (res.ok) {
         const json = await res.json();
-        if (json.code === 0 && json.data?.play) {
+        const hdUrl = json.data?.hdplay || json.data?.play;
+        if (json.code === 0 && hdUrl) {
           return NextResponse.json({
             success: true,
             title: json.data.title || "TikTok Video",
-            download_url: json.data.play,
+            download_url: hdUrl,
+            quality: json.data?.hdplay ? "HD" : "SD",
             author: json.data.author?.nickname || json.data.author?.unique_id || "TikTok User",
           });
         }
       }
     } catch {}
 
-    // 2. Fallback: rahad-all-downloader-v2
+    // 2. Fallback: rahad-all-downloader-v2 (Best HD quality)
     const { alldl } = await import("rahad-all-downloader-v2");
-    const result = await alldl(targetUrl);
+    const result = await alldl(targetUrl, { quality: "best" });
     const data = result?.data as any;
     const downloadUrl =
       data?.videoUrl ||
@@ -56,6 +58,7 @@ export async function POST(request: Request) {
       success: true,
       title: result?.data?.title || "TikTok Video",
       download_url: downloadUrl,
+      quality: "HD",
       author: "TikTok User",
     });
   } catch (err: any) {

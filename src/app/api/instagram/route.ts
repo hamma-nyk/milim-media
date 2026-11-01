@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-// ponytail: ultra-igdl primary + alldl fallback; add auth session cookies if private media required.
+// ponytail: ultra-igdl primary + alldl best quality fallback.
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
     const targetUrl = rawUrl.trim();
 
-    // 1. ultra-igdl
+    // 1. ultra-igdl (Extracts original video stream)
     try {
       const igModule = await import("ultra-igdl");
       const IgClient = ((igModule as any).default || (igModule as any).ultraigdl) as new () => {
@@ -25,14 +25,15 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: true,
           download_url: media.url,
+          quality: "HD",
           title: res?.caption ? res.caption.slice(0, 50) : "Instagram Media",
         });
       }
     } catch {}
 
-    // 2. Fallback: rahad-all-downloader-v2
+    // 2. Fallback: rahad-all-downloader-v2 (Best HD quality)
     const { alldl } = await import("rahad-all-downloader-v2");
-    const result = await alldl(targetUrl);
+    const result = await alldl(targetUrl, { quality: "best" });
     const data = result?.data as any;
     const downloadUrl =
       data?.videoUrl ||
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       download_url: downloadUrl,
+      quality: "HD",
       title: result?.data?.title || "Instagram Video",
     });
   } catch (err: any) {

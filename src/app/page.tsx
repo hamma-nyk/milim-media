@@ -22,7 +22,7 @@ const IconFacebook = () => (
 export default function HomePage() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [downloadResult, setDownloadResult] = useState<string | null>(null); // State simpan link hasil
+  const [downloadResult, setDownloadResult] = useState<{ url: string; quality?: string } | null>(null); // State simpan link hasil
   const [status, setStatus] = useState<{ type: "error" | "success" | null; msg: string }>({
     type: null,
     msg: "",
@@ -63,7 +63,7 @@ export default function HomePage() {
 
       if (data.success && data.download_url) {
         setStatus({ type: "success", msg: "Video berhasil diproses! Klik tombol di bawah." });
-        setDownloadResult(data.download_url); // Simpan link ke state
+        setDownloadResult({ url: data.download_url, quality: data.quality || "HD" }); // Simpan link ke state
       } else {
         throw new Error(data.error || "Gagal mengambil data.");
       }
@@ -149,13 +149,13 @@ export default function HomePage() {
           {/* TOMBOL HASIL DOWNLOAD (Muncul hanya jika sukses) */}
           {downloadResult && (
             <a 
-              href={downloadResult} 
+              href={downloadResult.url} 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 sm:gap-3 w-full py-3 sm:py-4 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-medium text-xs sm:text-sm shadow-[0_0_20px_rgba(22,163,74,0.4)] transition-all mt-3 sm:mt-4"
             >
               <ExternalLink className="w-4 sm:w-6 h-4 sm:h-6" />
-              DOWNLOAD VIDEO
+              DOWNLOAD VIDEO ({downloadResult.quality || "HD"})
             </a>
           )}
         </div>
