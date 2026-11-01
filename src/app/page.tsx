@@ -31,7 +31,7 @@ export default function HomePage() {
   const detectPlatform = (inputUrl: string) => {
     const link = inputUrl.toLowerCase();
     if (link.includes("tiktok.com")) return { endpoint: "/api/tiktok", key: "tiktok_url", name: "TikTok" };
-    if (link.includes("instagram.com")) return { endpoint: "/api/ig", key: "instagram_url", name: "Instagram" };
+    if (link.includes("instagram.com")) return { endpoint: "/api/instagram", key: "instagram_url", name: "Instagram" };
     if (link.includes("facebook.com") || link.includes("fb.watch")) return { endpoint: "/api/facebook", key: "facebook_url", name: "Facebook" };
     return null;
   };

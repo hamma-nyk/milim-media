@@ -1,106 +1,57 @@
 import { NextResponse } from "next/server";
-// import { Redis } from '@upstash/redis';
 
-// const redis = new Redis({
-//   url: process.env.UPSTASH_REDIS_REST_URL!,
-//   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-// });
-
+// ponytail: ultra-igdl primary + alldl fallback; add auth session cookies if private media required.
 export async function POST(request: Request) {
   try {
-    const { instagram_url } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const rawUrl = body.instagram_url || body.url;
 
-    if (!instagram_url) {
-      return NextResponse.json(
-        { error: "URL Instagram diperlukan" },
-        { status: 400 },
-      );
+    if (!rawUrl || typeof rawUrl !== "string") {
+      return NextResponse.json({ error: "URL Instagram diperlukan" }, { status: 400 });
     }
 
-    // const rawKeys = await redis.get<string>('browserless_io');
-    // if (!rawKeys) return NextResponse.json({ error: "No keys found" }, { status: 500 });
+    const targetUrl = rawUrl.trim();
 
-    // const apiKeys = rawKeys.split(',').map(k => k.trim()).filter(Boolean);
-    // const token = apiKeys[Math.floor(Math.random() * apiKeys.length)];
-
-    // 1. Script Browserless untuk Snapsave
-    const jsCode = `
-    export default async ({ page }) => {
-        try {
-            
-            await page.goto('https://fastdl.app/', { waitUntil: 'networkidle2' });
-            
-            // 1. Input link Instagram (Placeholder: Paste video URL Facebook/Instagram)
-            const inputSelector = 'input#search-form-input'; // Snapsave biasanya menggunakan id="url"
-            await page.waitForSelector(inputSelector, { timeout: 10000 });
-            await page.type(inputSelector, '${instagram_url}');
-            
-            // 2. Klik tombol Download
-            await page.click('button#searchFormButton'); // Snapsave menggunakan button id="send"
-
-            // 3. Tunggu tombol download hasil konversi muncul
-            // Berdasarkan logika Drission kamu: tag 'a' dengan class 'button is-success'
-            const finalBtnSelector = 'a.button.button--filled.button__download';
-            
-            // Kadang Snapsave butuh waktu lebih lama untuk memproses video HD
-            await page.waitForSelector(finalBtnSelector, { timeout: 25000 });
-
-            // 4. Ambil data
-            const result = await page.evaluate((sel) => {
-                const el = document.querySelector(sel);    
-                return {
-                    download_url: el ? el.getAttribute('href') : null,
-                };
-            }, finalBtnSelector);
-
-            return { data: result, type: "application/json" };
-
-        } catch (err) {
-            return { data: { error: err.message }, type: "application/json" };
-        }
-    };
-    `;
-
-    // Ambil token dari environment
-    const shuffledKeys = [process.env.BROWSERLESS_TOKEN!];
-    let lastError = null;
-
-    for (const key of shuffledKeys) {
-      try {
-        const url = `https://production-sfo.browserless.io/function?token=${key}`;
-
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/javascript" },
-          body: jsCode,
+    // 1. ultra-igdl
+    try {
+      const igModule = await import("ultra-igdl");
+      const IgClient = ((igModule as any).default || (igModule as any).ultraigdl) as new () => {
+        download: (u: string) => Promise<{ media?: Array<{ url: string; type: string }>; caption?: string }>;
+      };
+      const client = new IgClient();
+      const res = await client.download(targetUrl);
+      const media = res?.media?.find((m) => m.type === "video") || res?.media?.[0];
+      if (media?.url) {
+        return NextResponse.json({
+          success: true,
+          download_url: media.url,
+          title: res?.caption ? res.caption.slice(0, 50) : "Instagram Media",
         });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data && !result.data.error) {
-            return NextResponse.json({
-              success: true,
-              download_url: result.data.download_url,
-            });
-          }
-          lastError = result.data?.error || "Gagal konversi";
-        } else {
-          lastError = `Browserless Error: ${response.statusText}`;
-        }
-      } catch (error: any) {
-        lastError = error.message;
       }
+    } catch {}
+
+    // 2. Fallback: rahad-all-downloader-v2
+    const { alldl } = await import("rahad-all-downloader-v2");
+    const result = await alldl(targetUrl);
+    const data = result?.data as any;
+    const downloadUrl =
+      data?.videoUrl ||
+      data?.download?.url ||
+      data?.download?.no_watermark;
+
+    if (!downloadUrl) {
+      return NextResponse.json({ error: "Gagal mengambil video Instagram" }, { status: 404 });
     }
 
-    return NextResponse.json(
-      { error: "Gagal mengambil data Instagram.", details: lastError },
-      { status: 503 },
-    );
+    return NextResponse.json({
+      success: true,
+      download_url: downloadUrl,
+      title: result?.data?.title || "Instagram Video",
+    });
   } catch (err: any) {
-    console.error("Internal Error:", err);
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 },
+      { error: "Gagal memproses link Instagram", details: err.message },
+      { status: 500 }
     );
   }
 }
